@@ -83,6 +83,9 @@ private:
 	ScrollType m_scrollType;
 	ScreenEdgeScrollMode m_screenEdgeScrollMode;
 	UnsignedInt m_lastMouseMoveTimeMsec;				// real-time in milliseconds when mouse last moved
+	Bool m_useRightMouseDragScroll;			// RMB scrolling grabs the map instead of scrolling by the distance to the anchor
+	ICoord2D m_dragLastPos;							// cursor position of the last RMB drag scroll step
+	Real m_dragGroundZ;									// height of the grabbed terrain point, the plane the drag moves along
 
 	void setScrolling( ScrollType scrollType );
 	void stopScrolling();

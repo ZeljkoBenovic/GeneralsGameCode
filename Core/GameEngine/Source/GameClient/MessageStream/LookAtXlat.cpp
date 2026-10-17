@@ -112,12 +112,29 @@ void LookAtTranslator::stopScrolling()
 }
 
 //-----------------------------------------------------------------------------
+extern HWND ApplicationHWnd;
+
+// Returns true when the app window covers the whole primary monitor, as a borderless window at the desktop
+// resolution does. The primary monitor always starts at 0,0.
+static Bool isWindowCoveringMonitor()
+{
+	RECT rect;
+	if (ApplicationHWnd == nullptr || !GetWindowRect(ApplicationHWnd, &rect))
+		return false;
+
+	return rect.left <= 0 && rect.top <= 0 &&
+		rect.right >= GetSystemMetrics(SM_CXSCREEN) && rect.bottom >= GetSystemMetrics(SM_CYSCREEN);
+}
+
+//-----------------------------------------------------------------------------
 Bool LookAtTranslator::canScrollAtScreenEdge() const
 {
 	if (!TheMouse->isCursorCaptured())
 		return false;
 
-	if (TheDisplay->getWindowed())
+	// TheSuperHackers @tweak ZeljkoBenovic 17/10/2026 A window that covers its whole monitor is borderless
+	// fullscreen to the player, so it follows the fullscreen setting.
+	if (TheDisplay->getWindowed() && !isWindowCoveringMonitor())
 	{
 		if ((m_screenEdgeScrollMode & ScreenEdgeScrollMode_EnabledInWindowedApp) == 0)
 			return false;
@@ -149,6 +166,9 @@ LookAtTranslator::LookAtTranslator() :
 
 	OptionPreferences prefs;
 	m_screenEdgeScrollMode = prefs.getScreenEdgeScrollMode();
+	m_useRightMouseDragScroll = prefs.getRightMouseDragScroll();
+	m_dragLastPos.x = m_dragLastPos.y = 0;
+	m_dragGroundZ = 0.0f;
 
 	DEBUG_ASSERTCRASH(!TheLookAtTranslator, ("Already have a LookAtTranslator - why do you need two?"));
 	TheLookAtTranslator = this;
@@ -163,7 +183,8 @@ LookAtTranslator::~LookAtTranslator()
 
 const ICoord2D* LookAtTranslator::getRMBScrollAnchor()
 {
-	if (m_isScrolling && m_scrollType == SCROLL_RMB)
+	// Drag scrolling has no anchor to show, the grabbed point stays under the cursor.
+	if (m_isScrolling && m_scrollType == SCROLL_RMB && !m_useRightMouseDragScroll)
 	{
 		return &m_anchor;
 	}
@@ -266,6 +287,13 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			if (userWantsRMBScroll && !TheInGameUI->isSelecting() && !m_isScrolling)
 			{
 				setScrolling(SCROLL_RMB);
+
+				if (m_useRightMouseDragScroll)
+				{
+					Coord3D grabPoint;
+					m_dragGroundZ = TheTacticalView->screenToTerrain(&m_anchor, &grabPoint) ? grabPoint.z : TheTacticalView->getPosition().z;
+					m_dragLastPos = m_anchor;
+				}
 			}
 			break;
 		}
@@ -456,6 +484,27 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 				{
 				case SCROLL_RMB:
 					{
+						// TheSuperHackers @feature ZeljkoBenovic 17/10/2026 Drag scrolling moves the camera so that the
+						// grabbed terrain point stays under the cursor, like map panning in modern RTS games.
+						// Both points are projected with the same camera, so the step is zero when the cursor did not
+						// move since the last step, even if the camera has not been updated yet.
+						if (m_useRightMouseDragScroll)
+						{
+							Coord3D lastPoint;
+							Coord3D cursorPoint;
+							if ((m_currentPos.x != m_dragLastPos.x || m_currentPos.y != m_dragLastPos.y) &&
+								TheTacticalView->screenToWorldAtZ(&m_dragLastPos, &lastPoint, m_dragGroundZ) != PlaneClass::NO_INTERSECTION &&
+								TheTacticalView->screenToWorldAtZ(&m_currentPos, &cursorPoint, m_dragGroundZ) != PlaneClass::NO_INTERSECTION)
+							{
+								Coord2D delta;
+								delta.x = lastPoint.x - cursorPoint.x;
+								delta.y = lastPoint.y - cursorPoint.y;
+								TheTacticalView->userScrollByWorld(&delta);
+							}
+							m_dragLastPos = m_currentPos;
+							break;
+						}
+
 						if (TheInGameUI->shouldMoveRMBScrollAnchor())
 						{
 							Int maxX = TheDisplay->getWidth()/2;

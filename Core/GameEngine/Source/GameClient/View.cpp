@@ -152,6 +152,15 @@ void View::scrollBy( const Coord2D *delta )
 }
 
 /**
+ * Shift the view by the given world space delta.
+ */
+void View::scrollByWorld( const Coord2D *delta )
+{
+	m_pos.x += delta->x;
+	m_pos.y += delta->y;
+}
+
+/**
  * Rotate the view around the vertical axis to the given angle.
  */
 void View::setAngle( Real radians )

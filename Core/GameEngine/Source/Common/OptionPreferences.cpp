@@ -377,6 +377,21 @@ Bool OptionPreferences::getScreenEdgeScrollEnabledInFullscreenApp() const
 	return FALSE;
 }
 
+// TheSuperHackers @feature ZeljkoBenovic 17/10/2026 RightMouseScrollMode = Drag grabs the map with the right mouse
+// button, keeping the ground point under the cursor. Classic keeps the original scrolling, where the distance
+// from the click point sets the scroll speed.
+Bool OptionPreferences::getRightMouseDragScroll() const
+{
+	OptionPreferences::const_iterator it = find("RightMouseScrollMode");
+	if (it == end())
+		return FALSE;
+
+	if (stricmp(it->second.str(), "Drag") == 0)
+		return TRUE;
+
+	return FALSE;
+}
+
 ScreenEdgeScrollMode OptionPreferences::getScreenEdgeScrollMode() const
 {
 	ScreenEdgeScrollMode mode = 0;

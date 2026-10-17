@@ -2160,6 +2160,24 @@ void W3DView::scrollBy( const Coord2D *delta )
 }
 
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature ZeljkoBenovic 17/10/2026 Shift the view by a world space delta, as drag scrolling
+// needs, without converting from screen units like scrollBy does.
+//-------------------------------------------------------------------------------------------------
+void W3DView::scrollByWorld( const Coord2D *delta )
+{
+	if( delta && (delta->x != 0 || delta->y != 0) )
+	{
+		Coord2D pos = getPosition2D();
+		pos.x += delta->x;
+		pos.y += delta->y;
+		setPosition2D(pos);
+
+		removeScriptedState(Scripted_Rotate);
+		m_recalcCamera = true;
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 void W3DView::forceRedraw()
 {
