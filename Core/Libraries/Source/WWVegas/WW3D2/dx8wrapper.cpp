@@ -108,6 +108,7 @@ int DX8Wrapper_PreserveFPU = 0;
 ***********************************************************************************/
 
 static HWND						_Hwnd															= nullptr;
+static bool						_HwndCaptionRemoved											= false;
 bool								DX8Wrapper::IsInitted									= false;
 bool								DX8Wrapper::_EnableTriangleDraw						= true;
 
@@ -885,13 +886,47 @@ void DX8Wrapper::Resize_And_Position_Window()
 	if ((rect.right-rect.left) != ResolutionWidth ||
 			(rect.bottom-rect.top) != ResolutionHeight) {
 
+		DWORD dwstyle = ::GetWindowLong (_Hwnd, GWL_STYLE);
+
+		// TheSuperHackers @feature ZeljkoBenovic 17/10/2026
+		// Remove the caption and frame of a top level window when its client area covers the whole monitor,
+		// and restore them when it no longer does. This turns windowed mode at the desktop resolution into a
+		// borderless window that does not spill its frame onto neighbouring monitors and that Windows treats
+		// as fullscreen, which also hides the taskbar. It works around exclusive fullscreen staying device-lost.
+		if (IsWindowed && !(dwstyle & WS_CHILD))
+		{
+			MONITORINFO mi = {sizeof(MONITORINFO)};
+			GetMonitorInfo(MonitorFromWindow(_Hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+			const bool coversMonitor =
+				ResolutionWidth >= (mi.rcMonitor.right - mi.rcMonitor.left) &&
+				ResolutionHeight >= (mi.rcMonitor.bottom - mi.rcMonitor.top);
+
+			DWORD newstyle = dwstyle;
+			if (coversMonitor && (dwstyle & WS_CAPTION))
+			{
+				newstyle &= ~WS_CAPTION;
+				_HwndCaptionRemoved = true;
+			}
+			else if (!coversMonitor && _HwndCaptionRemoved)
+			{
+				newstyle |= WS_CAPTION;
+				_HwndCaptionRemoved = false;
+			}
+
+			if (newstyle != dwstyle)
+			{
+				::SetWindowLong(_Hwnd, GWL_STYLE, newstyle);
+				::SetWindowPos(_Hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+				dwstyle = newstyle;
+			}
+		}
+
 		// Calculate what the main window's bounding rectangle should be to
 		// accommodate this resolution
 		rect.left = 0;
 		rect.top = 0;
 		rect.right = ResolutionWidth;
 		rect.bottom = ResolutionHeight;
-		DWORD dwstyle = ::GetWindowLong (_Hwnd, GWL_STYLE);
 		AdjustWindowRect (&rect, dwstyle, FALSE);
 		int width = rect.right-rect.left;
 		int height = rect.bottom-rect.top;
