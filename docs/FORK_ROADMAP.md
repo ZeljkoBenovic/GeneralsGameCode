@@ -44,6 +44,20 @@ and must compile with VC6 (C++98).
 
 ## Baselines
 
+Machine: i7-8700, 64 GB, RTX 4070 Ti SUPER, Windows 11, 2560x1440 windowed. Replay `12-11-35_2v2_babai_ILnur_HardAI_HardAI.rep` (55 min).
+
 | Date | Build | Benchmark | Result |
 |---|---|---|---|
 | 17/10/2026 | Official release (VC6) | 10 replays headless, `-jobs 4` | 356 s wall, 0 errors |
+| 17/10/2026 | `modern` e64c462f3+ VC6 (Online) | 10 replays headless, `-jobs 4` | 298 s wall, 0 errors |
+| 17/10/2026 | `modern` VC6 (Online) | render, minute 20, 60 s (2 runs) | fps avg 665 / 886, 1% low 175 / 220, logic 2.16 / 2.17 ms avg, 9.79 / 9.68 ms p99, 24.7 ms max |
+| 17/10/2026 | `modern` VC6 (Online) | full replay headless, `-jobs 1` (2 runs) | 134.6 s / 134.3 s |
+
+Findings:
+- Logic timings and headless simulation time repeat within 0.5 %. Render fps varied 33 % between runs and needs a more
+  stable setup (fixed camera, fullscreen, nothing else on screen) before it is useful for renderer work.
+- On this machine rendering is far from the limit (~900 fps late game). The game logic is: the 33 ms logic tick budget
+  already sees 25 ms spikes in a 4 player match. Logic performance is the first target for "performance and scale".
+- Logic optimizations that keep results bit identical are allowed in the Online build; verify with the replay check.
+- Modern builds desync from retail replays at frame 110, so their replay workload diverges (the match can even end early).
+  Use the Online build for workload-exact comparisons.
