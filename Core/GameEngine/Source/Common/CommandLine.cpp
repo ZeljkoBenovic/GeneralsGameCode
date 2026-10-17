@@ -28,6 +28,7 @@
 #include "Common/ArchiveFileSystem.h"
 #include "Common/CommandLine.h"
 #include "Common/CRCDebug.h"
+#include "Common/FrameStats.h"
 #include "Common/LocalFileSystem.h"
 #include "Common/version.h"
 #include "Common/WorkingDirectory.h"
@@ -1051,6 +1052,27 @@ Int parseNoFPSLimit(char *args[], int num)
 	return 1;
 }
 
+Int parseFrameStats(char *args[], int num)
+{
+	if (num > 1)
+	{
+		// Measure the uncapped frame rate.
+		parseNoFPSLimit(args, num);
+
+		// The optional start minute is a plain number. Anything else is the next option.
+		UnsignedInt startMinute = 0;
+		Int consumed = 2;
+		if (num > 2 && isdigit((unsigned char)args[2][0]))
+		{
+			startMinute = atoi(args[2]);
+			consumed = 3;
+		}
+		FrameStats::enable(atoi(args[1]), startMinute * 60 * LOGICFRAMES_PER_SECOND);
+		return consumed;
+	}
+	return 2;
+}
+
 Int parseDumpAssetUsage(char *args[], int num)
 {
 	TheWritableGlobalData->m_dumpAssetUsage = true;
@@ -1214,6 +1236,9 @@ static CommandLineParam paramsForEngineInit[] =
 
 	// TheSuperHackers @feature xezon 03/08/2025 Force full viewport for 'Control Bar Pro' Addons like GenTool did it.
 	{ "-forcefullviewport", parseFullViewport },
+
+	// TheSuperHackers @feature ZeljkoBenovic 17/10/2026 Write frame timings to FrameStats.txt after the given seconds, optionally starting at the given game minute, then quit.
+	{ "-frameStats", parseFrameStats },
 
 #if defined(RTS_DEBUG)
 	{ "-noaudio", parseNoAudio },

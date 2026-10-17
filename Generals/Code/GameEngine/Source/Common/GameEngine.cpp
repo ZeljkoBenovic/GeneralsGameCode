@@ -33,6 +33,7 @@
 #include "Common/BuildAssistant.h"
 #include "Common/CRCDebug.h"
 #include "Common/FramePacer.h"
+#include "Common/FrameStats.h"
 #include "Common/Radar.h"
 #include "Common/PlayerTemplate.h"
 #include "Common/Team.h"
@@ -755,7 +756,9 @@ void GameEngine::update()
 		// TheSuperHackers @info Ignores frozen time because the script engine needs updating in the logic update regardless.
 		if (canUpdateGameLogic(FramePacer::IgnoreFrozenTime))
 		{
+			FrameStats::beginLogic();
 			TheGameLogic->UPDATE();
+			FrameStats::endLogic();
 
 			if (!TheFramePacer->isTimeFrozen())
 			{
@@ -813,6 +816,8 @@ void GameEngine::execute()
 			}
 #endif
 
+			FrameStats::beginFrame();
+
 			{
 				try
 				{
@@ -839,6 +844,23 @@ void GameEngine::execute()
 					{
 					}
 					RELEASE_CRASH(("Uncaught Exception in GameEngine::update"));
+				}
+			}
+
+			if (FrameStats::isEnabled())
+			{
+				// TheSuperHackers @tweak ZeljkoBenovic 17/10/2026 Run the game logic as fast as possible until the start frame
+				// of the measurement, then at its normal rate, so that only the render rate is uncapped while measuring.
+				const Bool inGame = TheGameLogic->isInGame() && !TheGameLogic->isInShellGame();
+				const Bool measuring = inGame && TheGameLogic->getFrame() > 0 && TheGameLogic->getFrame() >= FrameStats::getStartFrame();
+				if (measuring && !TheFramePacer->isLogicTimeScaleEnabled())
+				{
+					TheFramePacer->setLogicTimeScaleFps(LOGICFRAMES_PER_SECOND);
+					TheFramePacer->enableLogicTimeScale(TRUE);
+				}
+				if (FrameStats::endFrame(inGame, measuring))
+				{
+					TheGameEngine->setQuitting(TRUE);
 				}
 			}
 

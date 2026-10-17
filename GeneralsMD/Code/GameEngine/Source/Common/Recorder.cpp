@@ -27,6 +27,7 @@
 #include "Common/Recorder.h"
 #include "Common/file.h"
 #include "Common/FileSystem.h"
+#include "Common/FrameStats.h"
 #include "Common/PlayerList.h"
 #include "Common/Player.h"
 #include "Common/GlobalData.h"
@@ -1031,7 +1032,13 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 
 			// TheSuperHackers @tweak Pause the game on mismatch.
 			// But not when a window with focus is opened, because that can make resuming difficult.
-			if (TheWindowManager->winGetFocus() == nullptr)
+			// TheSuperHackers @tweak ZeljkoBenovic 17/10/2026 Keep playing when measuring frame stats, so that builds
+			// which are not CRC compatible with the replay can still be benchmarked with it.
+			if (FrameStats::isEnabled())
+			{
+				m_crcInfo.setSawCRCMismatch();
+			}
+			else if (TheWindowManager->winGetFocus() == nullptr)
 			{
 				Bool pause = TRUE;
 				Bool pauseMusic = FALSE;

@@ -20,6 +20,7 @@
 
 #include "Common/ReplaySimulation.h"
 
+#include "Common/FrameStats.h"
 #include "Common/GameEngine.h"
 #include "Common/LocalFileSystem.h"
 #include "Common/Recorder.h"
@@ -97,7 +98,9 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 					fflush(stdout);
 				}
 				TheGameLogic->UPDATE();
-				if (TheRecorder->sawCRCMismatch())
+				// TheSuperHackers @tweak ZeljkoBenovic 17/10/2026 Keep simulating when benchmarking, so that builds which
+				// are not CRC compatible with the replay can still be timed with it.
+				if (TheRecorder->sawCRCMismatch() && !FrameStats::isEnabled())
 				{
 					numErrors++;
 					break;
