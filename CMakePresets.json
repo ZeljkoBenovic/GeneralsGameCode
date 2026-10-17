@@ -122,6 +122,23 @@
             }
         },
         {
+            "name": "win32-enhanced",
+            "inherits": "win32",
+            "displayName": "Windows 32bit Enhanced Release (not retail compatible)",
+            "cacheVariables": {
+                "RTS_BUILD_OPTION_RETAIL_COMPATIBLE_GAME": "OFF"
+            }
+        },
+        {
+            "name": "win32-enhanced-profile",
+            "inherits": "win32-enhanced",
+            "displayName": "Windows 32bit Enhanced Profile (not retail compatible)",
+            "cacheVariables": {
+                "RTS_BUILD_OPTION_PROFILE": "ON",
+                "RTS_BUILD_OPTION_PROFILE_TRACY": "ON"
+            }
+        },
+        {
             "name": "win32-vcpkg",
             "inherits": "default-vcpkg",
             "hidden": false,
@@ -244,6 +261,20 @@
             "displayName": "Build Windows 32bit Debug",
             "description": "Build Windows 32bit Debug",
             "configuration": "Debug"
+        },
+        {
+            "name": "win32-enhanced",
+            "configurePreset": "win32-enhanced",
+            "displayName": "Build Windows 32bit Enhanced Release",
+            "description": "Build Windows 32bit Enhanced Release",
+            "configuration": "Release"
+        },
+        {
+            "name": "win32-enhanced-profile",
+            "configurePreset": "win32-enhanced-profile",
+            "displayName": "Build Windows 32bit Enhanced Profile",
+            "description": "Build Windows 32bit Enhanced Profile",
+            "configuration": "Release"
         },
         {
             "name": "win32-vcpkg",
